@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infotec.pe | Laptops y Tecnología</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<div id="app">
+    <header>
+        <div class="container header-main">
+            <div class="logo">infotec<span>.pe</span></div>
+            
+            <div class="search-box">
+                <input type="text" id="buscador" placeholder="¿Qué estás buscando?" onkeyup="buscarProducto()">
+                <button type="button">🔍</button>
+            </div>
+
+            <div class="user-cart-actions">
+                <div class="user-profile">
+                    <span class="icon">👤</span>
+                    <div class="text-info">
+                        <small>Bienvenido</small>
+                        <strong>Mi Cuenta</strong>
+                    </div>
+                </div>
+                
+                <div class="cart-container" onclick="toggleCarrito()">
+                    <span class="icon">🛒</span>
+                    <div class="text-info">
+                        <strong>Carrito</strong>
+                        <small id="cart-total-nav">S/ 0.00 PEN</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <nav class="main-nav">
+            <div class="container nav-links">
+                <span class="categories-btn">☰ Categorías</span>
+                <a href="#">Inicio</a>
+                <a href="#" class="active">Laptops</a>
+                <a href="#">Componentes</a>
+                <a href="#">Periféricos</a>
+                <a href="#">Contacto</a>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container main-layout">
+        <aside class="sidebar">
+            <h3>Filtros</h3>
+            <ul class="filter-list">
+                <li>Laptops Gaming</li>
+                <li>Laptops Oficina</li>
+                <li>MacBooks</li>
+                <li>Accesorios</li>
+            </ul>
+        </aside>
+
+        <section class="products-area">
+            <div class="toolbar">
+                <h1>Catálogo de Laptops</h1>
+            </div>
+
+            <div id="catalogo" class="product-grid">
+                <p>Cargando productos...</p>
+            </div>
+        </section>
+    </main>
+
+    <div id="cart-drawer" class="cart-drawer">
+        <div class="cart-header">
+            <h3>Tu Carrito</h3>
+            <button class="close-btn" onclick="toggleCarrito()">✕</button>
+        </div>
+        
+        <div id="carrito-items" class="cart-content">
+            </div>
+        
+        <div class="cart-footer">
+            <div class="total-section">
+                <span>Total:</span>
+                <strong id="cart-total-final">S/ 0.00</strong>
+            </div>
+            <button class="btn-checkout">PAGAR AHORA</button>
+        </div>
+    </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
