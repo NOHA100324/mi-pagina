@@ -1,10 +1,24 @@
 const mysql = require('mysql2');
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const app = express();
 
 app.use(cors());
 app.use(express.json());
+
+// Servir archivos estáticos
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+app.get('/style.css', (req, res) => {
+    res.sendFile(path.join(__dirname, 'style.css'));
+});
+
+app.get('/app.js', (req, res) => {
+    res.sendFile(path.join(__dirname, 'app.js'));
+});
 
 // Configuración de tu VPS
 const db = mysql.createConnection({
@@ -22,45 +36,22 @@ db.connect(err => {
     } else {
         console.log("✅ Conectado exitosamente al VPS de Infotec");
         
-        // 1. Crear tabla si no existe
-        const sql = `
-            CREATE TABLE IF NOT EXISTS productos (
+        // 2. Crear tabla de usuarios (Admin)
+        const sqlUsers = `
+            CREATE TABLE IF NOT EXISTS usuarios (
                 id INT AUTO_INCREMENT PRIMARY KEY,
-                nombre VARCHAR(255) NOT NULL,
-                precio DECIMAL(10,2) NOT NULL,
-                img TEXT,
-                marca VARCHAR(50)
+                username VARCHAR(50) UNIQUE NOT NULL,
+                password VARCHAR(255) NOT NULL
             );
         `;
-        
-        db.query(sql, (err) => {
-            if (err) return console.error("Error creating table:", err);
-            
-            // 2. Asegurar que img sea TEXT
-            db.query('ALTER TABLE productos MODIFY COLUMN img TEXT', (err) => {
-                if (err) console.log("Nota: No se pudo alterar la columna, tal vez ya es TEXT.");
-                
-                // 3. Insertar datos si está vacía
-                db.query('SELECT COUNT(*) AS count FROM productos', (err, result) => {
-                    if (err) return console.error("Error checking table:", err);
-                    
-                    if (result[0].count === 0) {
-                        const sampleProducts = [
-                            ['Laptop Gamer ASUS ROG', 4500.00, 'https://dlcdnwebimgs.asus.com/gain/27339121-7546-4444-934C-340D8389656A/w717/h525', 'ASUS'],
-                            ['MacBook Air M2', 5200.00, 'https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/macbook-air-midnight-select-20220606?wid=452&hei=420&fmt=jpeg&qlt=95&.v=1653084303665', 'Apple'],
-                            ['HP Pavilion 15', 2800.00, 'https://ssl-product-images.www8-hp.com/digfc/c08170251_en_US_1.png', 'HP'],
-                            ['Lenovo Legion 5', 4100.00, 'https://p1-ofp.static.pub/medias/bWFya2V0cGxhY2UvcHByb2QvODE2RURDMDAtM0I2MC00QzZBLUFGNDYtRDFFMEQyMUFEMzVB/lenovo-laptop-legion-5-15ach6h-82ju000uus-amd-ryzen-7-5000-series-5800h-3-20-ghz-16-gb-memory-512-gb-pcie-ssd-nvidia-geforce-rtx-3060-15-6-windows-10-home-64-bit-v2.jpg', 'Lenovo'],
-                            ['Dell XPS 13', 5800.00, 'https://i.dell.com/is/image/DellContent/content/dam/ss2/product-images/dell-client-products/notebooks/xps-notebooks/xps-13-9315/media-gallery/laptop-xps-13-9315-blue-gallery-1.psd?fmt=pjpg&pscan=auto&scl=1&wid=4106&hei=2422&qlt=100,0&resMode=sharp2&size=4106,2422', 'Dell']
-                        ];
-                        const insertSql = 'INSERT INTO productos (nombre, precio, img, marca) VALUES ?';
-                        db.query(insertSql, [sampleProducts], (err) => {
-                            if (err) console.error("Error inserting sample data:", err);
-                            else console.log("✅ Datos de prueba insertados");
-                        });
-                    }
-                });
-            });
+        db.query(sqlUsers, (err) => {
+            if (err) console.error("Error creando tabla usuarios:", err);
+            // Insertar admin por defecto si no existe
+            db.query('INSERT IGNORE INTO usuarios (username, password) VALUES ("admin", "admin123")');
         });
+
+        // 1. Crear tabla si no existe con columna stock ... (resto del código igual)
+
     }
 });
 
@@ -69,6 +60,51 @@ app.get('/api/productos', (req, res) => {
     db.query('SELECT * FROM productos', (err, results) => {
         if (err) return res.status(500).json(err);
         res.json(results);
+    });
+});
+
+// --- RUTAS DE ADMINISTRACIÓN ---
+
+// Login de Admin
+app.post('/api/login', (req, res) => {
+    const { username, password } = req.body;
+    db.query('SELECT * FROM usuarios WHERE username = ? AND password = ?', [username, password], (err, result) => {
+        if (err) return res.status(500).json(err);
+        if (result.length > 0) {
+            res.json({ success: true, message: "Bienvenido Admin" });
+        } else {
+            res.status(401).json({ success: false, message: "Usuario o contraseña incorrectos" });
+        }
+    });
+});
+
+// Agregar producto
+app.post('/api/productos', (req, res) => {
+    const { nombre, precio, img, marca, stock } = req.body;
+    const sql = 'INSERT INTO productos (nombre, precio, img, marca, stock) VALUES (?, ?, ?, ?, ?)';
+    db.query(sql, [nombre, precio, img, marca, stock], (err, result) => {
+        if (err) return res.status(500).json(err);
+        res.json({ success: true, id: result.insertId });
+    });
+});
+
+// Editar producto
+app.put('/api/productos/:id', (req, res) => {
+    const { id } = req.params;
+    const { nombre, precio, img, marca, stock } = req.body;
+    const sql = 'UPDATE productos SET nombre=?, precio=?, img=?, marca=?, stock=? WHERE id=?';
+    db.query(sql, [nombre, precio, img, marca, stock, id], (err) => {
+        if (err) return res.status(500).json(err);
+        res.json({ success: true });
+    });
+});
+
+// Eliminar producto
+app.delete('/api/productos/:id', (req, res) => {
+    const { id } = req.params;
+    db.query('DELETE FROM productos WHERE id = ?', [id], (err) => {
+        if (err) return res.status(500).json(err);
+        res.json({ success: true });
     });
 });
 
